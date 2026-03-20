@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Mock Exam</title>
+    <link rel="stylesheet" href="/static/style.css" />
+  </head>
+  <body class="student-body">
+    <div class="student-page">
+      <div class="student-header-card">
+        <div>
+          <h1>Mock Exam Platform</h1>
+          <p>
+            Save your name first, choose a subject, then answer your questions
+            carefully.
+          </p>
+        </div>
+
+        <div class="timer-box">
+          <span>Time Left</span>
+          <h2 id="timer">60:00</h2>
+        </div>
+      </div>
+
+      <div class="subject-select-card">
+        <div class="student-name-save-row">
+          <div class="student-input-group">
+            <label for="studentName">Student Name</label>
+            <input
+              type="text"
+              id="studentName"
+              placeholder="Enter your full name"
+            />
+          </div>
+
+          <button class="primary-btn name-save-btn" onclick="saveStudentName()">
+            Save Name
+          </button>
+        </div>
+
+        <div id="savedStudentBanner" class="saved-student-banner hidden">
+          Student: <strong id="savedStudentNameText"></strong>
+        </div>
+
+        <div class="subject-row">
+          <div class="student-input-group">
+            <label for="subjectSelect">Available Subjects</label>
+            <select id="subjectSelect"></select>
+          </div>
+
+          <button class="primary-btn" onclick="startSelectedSubject()">
+            Start Subject
+          </button>
+        </div>
+      </div>
+
+      <div id="examArea" class="exam-area hidden">
+        <div class="question-view-card">
+          <div class="question-view-top">
+            <span class="question-count" id="questionCount"
+              >Question 1 of 1</span
+            >
+            <span class="subject-name-pill" id="subjectNamePill">Subject</span>
+          </div>
+
+          <h3 id="questionText">Question text</h3>
+
+          <div id="optionsContainer" class="options-list"></div>
+        </div>
+
+        <div class="question-navigation">
+          <button class="secondary-btn" onclick="prevQuestion()">
+            Previous
+          </button>
+          <button class="primary-btn" onclick="nextQuestion()">Next</button>
+        </div>
+      </div>
+
+      <button
+        id="submitBtn"
+        class="submit-fixed-btn hidden"
+        onclick="submitExam()"
+      >
+        Submit Exam
+      </button>
+    </div>
+
+    <script src="/static/script.js"></script>
+  </body>
+</html>

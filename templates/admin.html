@@ -1,0 +1,361 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Admin Dashboard</title>
+    <link rel="stylesheet" href="/static/style.css" />
+  </head>
+  <body class="admin-body">
+    <div class="admin-page">
+      <div class="admin-header-card">
+        <h1>Mock Exam Admin Dashboard</h1>
+        <p>
+          Manage subjects, set questions, and check student information with
+          total scores.
+        </p>
+      </div>
+
+      <div class="subject-tabs-row" id="subjectTabs"></div>
+
+      <div id="subjectManagementSection">
+        <div class="subject-editor-card">
+          <div class="subject-editor-left">
+            <span class="subject-label">Current Subject</span>
+            <h2 id="currentSubjectTitle">Subject 1</h2>
+            <p id="currentSubjectQuestionInfo" class="subject-question-info">
+              40 Questions
+            </p>
+          </div>
+
+          <div class="subject-editor-right">
+            <label for="subjectNameInput">Edit subject name</label>
+            <div class="subject-name-edit-wrap">
+              <input
+                type="text"
+                id="subjectNameInput"
+                placeholder="Enter subject name"
+              />
+              <button class="primary-btn" onclick="saveSubjectName()">
+                Save Subject Name
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="admin-instruction-card">
+          <strong>Note:</strong> Some subjects have 40 question slots and some
+          have 60 question slots. The question slots below follow the selected
+          subject.
+        </div>
+
+        <div id="questionsContainer" class="questions-grid"></div>
+      </div>
+
+      <div id="studentInfoSection" class="student-results-card hidden">
+        <div class="student-results-top">
+          <h2>Student Information</h2>
+          <button class="secondary-btn" onclick="loadStudentReport()">
+            Refresh Student Info
+          </button>
+        </div>
+
+        <div class="table-wrap">
+          <table class="results-table">
+            <thead id="studentReportHead"></thead>
+            <tbody id="studentReportBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      let currentSubjectId = 1;
+      let subjects = [];
+      let currentView = "subject";
+
+      async function loadSubjects() {
+        const res = await fetch("/get_subjects");
+        subjects = await res.json();
+        renderTabs();
+        setCurrentSubject(1);
+      }
+
+      function renderTabs() {
+        const tabs = document.getElementById("subjectTabs");
+        tabs.innerHTML = "";
+
+        subjects.forEach((subject) => {
+          const activeClass =
+            currentView === "subject" && subject.id === currentSubjectId
+              ? "active-subject-tab"
+              : "";
+
+          tabs.innerHTML += `
+                    <button
+                        class="subject-tab ${activeClass}"
+                        onclick="setCurrentSubject(${subject.id})"
+                    >
+                        ${subject.name} (${subject.total_questions})
+                    </button>
+                `;
+        });
+
+        const infoActiveClass =
+          currentView === "info" ? "active-subject-tab" : "";
+
+        tabs.innerHTML += `
+                <button
+                    class="subject-tab ${infoActiveClass}"
+                    onclick="showStudentInfo()"
+                >
+                    Student Info
+                </button>
+            `;
+      }
+
+      function setCurrentSubject(subjectId) {
+        currentView = "subject";
+        currentSubjectId = subjectId;
+
+        document
+          .getElementById("subjectManagementSection")
+          .classList.remove("hidden");
+        document.getElementById("studentInfoSection").classList.add("hidden");
+
+        const subject = subjects.find((s) => s.id === subjectId);
+
+        document.getElementById("currentSubjectTitle").innerText = subject
+          ? subject.name
+          : `Subject ${subjectId}`;
+        document.getElementById("currentSubjectQuestionInfo").innerText =
+          subject ? `${subject.total_questions} Questions` : "";
+        document.getElementById("subjectNameInput").value = subject
+          ? subject.name
+          : "";
+
+        renderTabs();
+        renderQuestionSlots();
+        loadSavedQuestions();
+      }
+
+      function showStudentInfo() {
+        currentView = "info";
+        renderTabs();
+        document
+          .getElementById("subjectManagementSection")
+          .classList.add("hidden");
+        document
+          .getElementById("studentInfoSection")
+          .classList.remove("hidden");
+        loadStudentReport();
+      }
+
+      async function saveSubjectName() {
+        const name = document.getElementById("subjectNameInput").value.trim();
+
+        if (!name) {
+          alert("Please enter a subject name.");
+          return;
+        }
+
+        const res = await fetch("/update_subject_name", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            subject_id: currentSubjectId,
+            name: name,
+          }),
+        });
+
+        const data = await res.json();
+        alert(data.message);
+        await loadSubjects();
+        setCurrentSubject(currentSubjectId);
+      }
+
+      function renderQuestionSlots() {
+        const container = document.getElementById("questionsContainer");
+        container.innerHTML = "";
+
+        const subject = subjects.find((s) => s.id === currentSubjectId);
+        const totalQuestions = subject ? subject.total_questions : 40;
+
+        for (let i = 1; i <= totalQuestions; i++) {
+          container.innerHTML += `
+                    <div class="question-admin-card">
+                        <div class="question-admin-top">
+                            <h3>Question ${i}</h3>
+                            <span class="slot-badge">Slot ${i}</span>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="question_${i}">Question</label>
+                            <textarea id="question_${i}" rows="3" placeholder="Type your question here"></textarea>
+                        </div>
+
+                        <div class="options-grid">
+                            <div class="form-group">
+                                <label for="a_${i}">Option A</label>
+                                <input type="text" id="a_${i}" placeholder="Enter option A">
+                            </div>
+
+                            <div class="form-group">
+                                <label for="b_${i}">Option B</label>
+                                <input type="text" id="b_${i}" placeholder="Enter option B">
+                            </div>
+
+                            <div class="form-group">
+                                <label for="c_${i}">Option C</label>
+                                <input type="text" id="c_${i}" placeholder="Enter option C">
+                            </div>
+
+                            <div class="form-group">
+                                <label for="d_${i}">Option D</label>
+                                <input type="text" id="d_${i}" placeholder="Enter option D">
+                            </div>
+                        </div>
+
+                        <div class="question-admin-bottom">
+                            <div class="form-group answer-group">
+                                <label for="answer_${i}">Correct Answer</label>
+                                <select id="answer_${i}">
+                                    <option value="">Select</option>
+                                    <option value="A">A</option>
+                                    <option value="B">B</option>
+                                    <option value="C">C</option>
+                                    <option value="D">D</option>
+                                </select>
+                            </div>
+
+                            <div class="question-actions">
+                                <button class="primary-btn" onclick="saveQuestion(${i})">Save</button>
+                                <button class="danger-btn" onclick="clearQuestion(${i})">Clear</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+        }
+      }
+
+      async function loadSavedQuestions() {
+        const res = await fetch(
+          `/get_questions_by_subject/${currentSubjectId}`,
+        );
+        const questions = await res.json();
+
+        questions.forEach((q) => {
+          if (document.getElementById(`question_${q.slot_number}`)) {
+            document.getElementById(`question_${q.slot_number}`).value =
+              q.question;
+            document.getElementById(`a_${q.slot_number}`).value = q.option_a;
+            document.getElementById(`b_${q.slot_number}`).value = q.option_b;
+            document.getElementById(`c_${q.slot_number}`).value = q.option_c;
+            document.getElementById(`d_${q.slot_number}`).value = q.option_d;
+            document.getElementById(`answer_${q.slot_number}`).value = q.answer;
+          }
+        });
+      }
+
+      async function saveQuestion(slotNumber) {
+        const payload = {
+          subject_id: currentSubjectId,
+          slot_number: slotNumber,
+          question: document
+            .getElementById(`question_${slotNumber}`)
+            .value.trim(),
+          option_a: document.getElementById(`a_${slotNumber}`).value.trim(),
+          option_b: document.getElementById(`b_${slotNumber}`).value.trim(),
+          option_c: document.getElementById(`c_${slotNumber}`).value.trim(),
+          option_d: document.getElementById(`d_${slotNumber}`).value.trim(),
+          answer: document.getElementById(`answer_${slotNumber}`).value,
+        };
+
+        const res = await fetch("/save_question", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+
+        const data = await res.json();
+        alert(data.message);
+      }
+
+      async function clearQuestion(slotNumber) {
+        const res = await fetch("/clear_question", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            subject_id: currentSubjectId,
+            slot_number: slotNumber,
+          }),
+        });
+
+        const data = await res.json();
+
+        if (document.getElementById(`question_${slotNumber}`)) {
+          document.getElementById(`question_${slotNumber}`).value = "";
+          document.getElementById(`a_${slotNumber}`).value = "";
+          document.getElementById(`b_${slotNumber}`).value = "";
+          document.getElementById(`c_${slotNumber}`).value = "";
+          document.getElementById(`d_${slotNumber}`).value = "";
+          document.getElementById(`answer_${slotNumber}`).value = "";
+        }
+
+        alert(data.message);
+      }
+
+      async function loadStudentReport() {
+        const res = await fetch("/get_student_report");
+        const data = await res.json();
+
+        const head = document.getElementById("studentReportHead");
+        const body = document.getElementById("studentReportBody");
+
+        head.innerHTML = "";
+        body.innerHTML = "";
+
+        let headerHtml = `
+                <tr>
+                    <th>Student Name</th>
+            `;
+
+        data.subjects.forEach((subject) => {
+          headerHtml += `<th>${subject.name}</th>`;
+        });
+
+        headerHtml += `
+                    <th>Grand Total</th>
+                </tr>
+            `;
+
+        head.innerHTML = headerHtml;
+
+        if (data.students.length === 0) {
+          body.innerHTML = `
+                    <tr>
+                        <td colspan="${data.subjects.length + 2}" class="empty-state-cell">
+                            No student information yet.
+                        </td>
+                    </tr>
+                `;
+          return;
+        }
+
+        data.students.forEach((student) => {
+          let rowHtml = `<tr><td>${student.student_name}</td>`;
+
+          data.subjects.forEach((subject) => {
+            const item = student.subjects[String(subject.id)];
+            rowHtml += `<td>${item.score} / ${item.total}</td>`;
+          });
+
+          rowHtml += `<td>${student.grand_score} / ${student.grand_total}</td></tr>`;
+          body.innerHTML += rowHtml;
+        });
+      }
+
+      loadSubjects();
+    </script>
+  </body>
+</html>
