@@ -8,12 +8,22 @@
   </head>
   <body class="admin-body">
     <div class="admin-page">
-      <div class="admin-header-card">
-        <h1>Mock Exam Admin Dashboard</h1>
-        <p>
-          Manage subjects, set questions, and check student information with
-          total scores.
-        </p>
+      <div class="admin-header-card admin-header-pro">
+        <div class="admin-header-top-row">
+          <div>
+            <div class="brand-badge">Admin Dashboard</div>
+            <h1>Mock Exam Admin Dashboard</h1>
+            <p>
+              Welcome, {{ admin_username }}. Manage subjects, enter CBT
+              questions, monitor active students, view grades and scores, and
+              delete student records when necessary.
+            </p>
+          </div>
+
+          <div class="admin-header-actions">
+            <a href="/logout" class="secondary-btn admin-logout-link">Logout</a>
+          </div>
+        </div>
       </div>
 
       <div class="subject-tabs-row" id="subjectTabs"></div>
@@ -44,9 +54,9 @@
         </div>
 
         <div class="admin-instruction-card">
-          <strong>Note:</strong> Some subjects have 40 question slots and some
-          have 60 question slots. The question slots below follow the selected
-          subject.
+          <strong>Note:</strong> Use the subject tabs to switch between papers.
+          Save each question into its slot. Existing questions in a slot will be
+          updated when saved again.
         </div>
 
         <div id="questionsContainer" class="questions-grid"></div>
@@ -54,10 +64,26 @@
 
       <div id="studentInfoSection" class="student-results-card hidden">
         <div class="student-results-top">
-          <h2>Student Information</h2>
+          <div>
+            <h2>Student Information</h2>
+            <p class="table-note">
+              View latest scores, grades, attempts, active students, and delete
+              any student record if required.
+            </p>
+          </div>
           <button class="secondary-btn" onclick="loadStudentReport()">
             Refresh Student Info
           </button>
+        </div>
+
+        <div class="active-students-card">
+          <div class="active-students-top">
+            <h3>Active Students</h3>
+            <button class="secondary-btn" onclick="loadActiveStudents()">
+              Refresh Active Students
+            </button>
+          </div>
+          <div id="activeStudentsList" class="active-students-list"></div>
         </div>
 
         <div class="table-wrap">
@@ -66,6 +92,25 @@
             <tbody id="studentReportBody"></tbody>
           </table>
         </div>
+
+        <div class="attempt-history-wrap">
+          <h3 class="attempt-history-title">Attempt History</h3>
+          <div class="table-wrap">
+            <table class="results-table">
+              <thead>
+                <tr>
+                  <th>Student Name</th>
+                  <th>Subject</th>
+                  <th>Attempt</th>
+                  <th>Score</th>
+                  <th>Grade</th>
+                  <th>Date</th>
+                </tr>
+              </thead>
+              <tbody id="attemptHistoryBody"></tbody>
+            </table>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -73,12 +118,35 @@
       let currentSubjectId = 1;
       let subjects = [];
       let currentView = "subject";
+      let autoRefreshInterval = null;
+
+      async function fetchJSON(url, options = {}) {
+        const response = await fetch(url, options);
+        let data = null;
+
+        try {
+          data = await response.json();
+        } catch (error) {
+          data = null;
+        }
+
+        return {
+          ok: response.ok,
+          status: response.status,
+          data,
+        };
+      }
 
       async function loadSubjects() {
-        const res = await fetch("/get_subjects");
-        subjects = await res.json();
+        const res = await fetchJSON("/get_subjects");
+        if (!res.ok) {
+          alert("Unable to load subjects.");
+          return;
+        }
+
+        subjects = Array.isArray(res.data) ? res.data : [];
         renderTabs();
-        setCurrentSubject(1);
+        setCurrentSubject(currentSubjectId);
       }
 
       function renderTabs() {
@@ -92,29 +160,31 @@
               : "";
 
           tabs.innerHTML += `
-                    <button
-                        class="subject-tab ${activeClass}"
-                        onclick="setCurrentSubject(${subject.id})"
-                    >
-                        ${subject.name} (${subject.total_questions})
-                    </button>
-                `;
+            <button
+              class="subject-tab ${activeClass}"
+              onclick="setCurrentSubject(${subject.id})"
+            >
+              ${subject.name} (${subject.total_questions})
+            </button>
+          `;
         });
 
         const infoActiveClass =
           currentView === "info" ? "active-subject-tab" : "";
 
         tabs.innerHTML += `
-                <button
-                    class="subject-tab ${infoActiveClass}"
-                    onclick="showStudentInfo()"
-                >
-                    Student Info
-                </button>
-            `;
+          <button
+            class="subject-tab ${infoActiveClass}"
+            onclick="showStudentInfo()"
+          >
+            Student Info
+          </button>
+        `;
       }
 
       function setCurrentSubject(subjectId) {
+        stopAutoRefresh();
+
         currentView = "subject";
         currentSubjectId = subjectId;
 
@@ -148,7 +218,27 @@
         document
           .getElementById("studentInfoSection")
           .classList.remove("hidden");
+
         loadStudentReport();
+        loadActiveStudents();
+        startAutoRefresh();
+      }
+
+      function startAutoRefresh() {
+        stopAutoRefresh();
+        autoRefreshInterval = setInterval(() => {
+          if (currentView === "info") {
+            loadStudentReport(false);
+            loadActiveStudents(false);
+          }
+        }, 5000);
+      }
+
+      function stopAutoRefresh() {
+        if (autoRefreshInterval) {
+          clearInterval(autoRefreshInterval);
+          autoRefreshInterval = null;
+        }
       }
 
       async function saveSubjectName() {
@@ -159,7 +249,7 @@
           return;
         }
 
-        const res = await fetch("/update_subject_name", {
+        const res = await fetchJSON("/update_subject_name", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -168,10 +258,15 @@
           }),
         });
 
-        const data = await res.json();
-        alert(data.message);
+        if (!res.ok) {
+          alert(
+            (res.data && res.data.message) || "Unable to save subject name.",
+          );
+          return;
+        }
+
+        alert(res.data.message);
         await loadSubjects();
-        setCurrentSubject(currentSubjectId);
       }
 
       function renderQuestionSlots() {
@@ -183,66 +278,68 @@
 
         for (let i = 1; i <= totalQuestions; i++) {
           container.innerHTML += `
-                    <div class="question-admin-card">
-                        <div class="question-admin-top">
-                            <h3>Question ${i}</h3>
-                            <span class="slot-badge">Slot ${i}</span>
-                        </div>
+            <div class="question-admin-card">
+              <div class="question-admin-top">
+                <h3>Question ${i}</h3>
+                <span class="slot-badge">Slot ${i}</span>
+              </div>
 
-                        <div class="form-group">
-                            <label for="question_${i}">Question</label>
-                            <textarea id="question_${i}" rows="3" placeholder="Type your question here"></textarea>
-                        </div>
+              <div class="form-group">
+                <label for="question_${i}">Question</label>
+                <textarea id="question_${i}" rows="3" placeholder="Type your question here"></textarea>
+              </div>
 
-                        <div class="options-grid">
-                            <div class="form-group">
-                                <label for="a_${i}">Option A</label>
-                                <input type="text" id="a_${i}" placeholder="Enter option A">
-                            </div>
+              <div class="options-grid">
+                <div class="form-group">
+                  <label for="a_${i}">Option A</label>
+                  <input type="text" id="a_${i}" placeholder="Enter option A" />
+                </div>
 
-                            <div class="form-group">
-                                <label for="b_${i}">Option B</label>
-                                <input type="text" id="b_${i}" placeholder="Enter option B">
-                            </div>
+                <div class="form-group">
+                  <label for="b_${i}">Option B</label>
+                  <input type="text" id="b_${i}" placeholder="Enter option B" />
+                </div>
 
-                            <div class="form-group">
-                                <label for="c_${i}">Option C</label>
-                                <input type="text" id="c_${i}" placeholder="Enter option C">
-                            </div>
+                <div class="form-group">
+                  <label for="c_${i}">Option C</label>
+                  <input type="text" id="c_${i}" placeholder="Enter option C" />
+                </div>
 
-                            <div class="form-group">
-                                <label for="d_${i}">Option D</label>
-                                <input type="text" id="d_${i}" placeholder="Enter option D">
-                            </div>
-                        </div>
+                <div class="form-group">
+                  <label for="d_${i}">Option D</label>
+                  <input type="text" id="d_${i}" placeholder="Enter option D" />
+                </div>
+              </div>
 
-                        <div class="question-admin-bottom">
-                            <div class="form-group answer-group">
-                                <label for="answer_${i}">Correct Answer</label>
-                                <select id="answer_${i}">
-                                    <option value="">Select</option>
-                                    <option value="A">A</option>
-                                    <option value="B">B</option>
-                                    <option value="C">C</option>
-                                    <option value="D">D</option>
-                                </select>
-                            </div>
+              <div class="question-admin-bottom">
+                <div class="form-group answer-group">
+                  <label for="answer_${i}">Correct Answer</label>
+                  <select id="answer_${i}">
+                    <option value="">Select</option>
+                    <option value="A">A</option>
+                    <option value="B">B</option>
+                    <option value="C">C</option>
+                    <option value="D">D</option>
+                  </select>
+                </div>
 
-                            <div class="question-actions">
-                                <button class="primary-btn" onclick="saveQuestion(${i})">Save</button>
-                                <button class="danger-btn" onclick="clearQuestion(${i})">Clear</button>
-                            </div>
-                        </div>
-                    </div>
-                `;
+                <div class="question-actions">
+                  <button class="primary-btn" onclick="saveQuestion(${i})">Save</button>
+                  <button class="danger-btn" onclick="clearQuestion(${i})">Clear</button>
+                </div>
+              </div>
+            </div>
+          `;
         }
       }
 
       async function loadSavedQuestions() {
-        const res = await fetch(
+        const res = await fetchJSON(
           `/get_questions_by_subject/${currentSubjectId}`,
         );
-        const questions = await res.json();
+        if (!res.ok) return;
+
+        const questions = Array.isArray(res.data) ? res.data : [];
 
         questions.forEach((q) => {
           if (document.getElementById(`question_${q.slot_number}`)) {
@@ -271,18 +368,17 @@
           answer: document.getElementById(`answer_${slotNumber}`).value,
         };
 
-        const res = await fetch("/save_question", {
+        const res = await fetchJSON("/save_question", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),
         });
 
-        const data = await res.json();
-        alert(data.message);
+        alert((res.data && res.data.message) || "Done.");
       }
 
       async function clearQuestion(slotNumber) {
-        const res = await fetch("/clear_question", {
+        const res = await fetchJSON("/clear_question", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -290,8 +386,6 @@
             slot_number: slotNumber,
           }),
         });
-
-        const data = await res.json();
 
         if (document.getElementById(`question_${slotNumber}`)) {
           document.getElementById(`question_${slotNumber}`).value = "";
@@ -302,57 +396,155 @@
           document.getElementById(`answer_${slotNumber}`).value = "";
         }
 
-        alert(data.message);
+        alert((res.data && res.data.message) || "Cleared.");
       }
 
-      async function loadStudentReport() {
-        const res = await fetch("/get_student_report");
-        const data = await res.json();
+      async function loadActiveStudents(showAlertOnError = true) {
+        const res = await fetchJSON("/get_active_students");
+        const list = document.getElementById("activeStudentsList");
+        list.innerHTML = "";
 
-        const head = document.getElementById("studentReportHead");
-        const body = document.getElementById("studentReportBody");
-
-        head.innerHTML = "";
-        body.innerHTML = "";
-
-        let headerHtml = `
-                <tr>
-                    <th>Student Name</th>
-            `;
-
-        data.subjects.forEach((subject) => {
-          headerHtml += `<th>${subject.name}</th>`;
-        });
-
-        headerHtml += `
-                    <th>Grand Total</th>
-                </tr>
-            `;
-
-        head.innerHTML = headerHtml;
-
-        if (data.students.length === 0) {
-          body.innerHTML = `
-                    <tr>
-                        <td colspan="${data.subjects.length + 2}" class="empty-state-cell">
-                            No student information yet.
-                        </td>
-                    </tr>
-                `;
+        if (!res.ok) {
+          if (showAlertOnError) {
+            alert(
+              (res.data && res.data.message) ||
+                "Unable to load active students.",
+            );
+          }
+          list.innerHTML = `<div class="mini-empty-state">Unable to load active students.</div>`;
           return;
         }
 
-        data.students.forEach((student) => {
-          let rowHtml = `<tr><td>${student.student_name}</td>`;
+        const data = Array.isArray(res.data) ? res.data : [];
 
-          data.subjects.forEach((subject) => {
-            const item = student.subjects[String(subject.id)];
-            rowHtml += `<td>${item.score} / ${item.total}</td>`;
-          });
+        if (!data.length) {
+          list.innerHTML = `<div class="mini-empty-state">No active students right now.</div>`;
+          return;
+        }
 
-          rowHtml += `<td>${student.grand_score} / ${student.grand_total}</td></tr>`;
-          body.innerHTML += rowHtml;
+        data.forEach((student) => {
+          list.innerHTML += `
+            <div class="active-student-item">
+              <div class="active-student-name">${student.name}</div>
+              <div class="active-student-time">Started: ${student.started_at}</div>
+              <div class="active-student-time">Status: ${student.status || "Active"}</div>
+              <div class="active-student-time">Attempts: ${student.total_attempts || 0}</div>
+            </div>
+          `;
         });
+      }
+
+      async function loadStudentReport(showAlertOnError = true) {
+        const res = await fetchJSON("/get_student_report");
+        if (!res.ok) {
+          if (showAlertOnError) {
+            alert(
+              (res.data && res.data.message) ||
+                "Unable to load student report.",
+            );
+          }
+          return;
+        }
+
+        const data = res.data || {};
+        const head = document.getElementById("studentReportHead");
+        const body = document.getElementById("studentReportBody");
+        const attemptBody = document.getElementById("attemptHistoryBody");
+
+        head.innerHTML = "";
+        body.innerHTML = "";
+        attemptBody.innerHTML = "";
+
+        let headerHtml = `<tr><th>Student Name</th>`;
+
+        (data.subjects || []).forEach((subject) => {
+          headerHtml += `<th>${subject.name}</th>`;
+        });
+
+        headerHtml += `<th>Grand Total</th><th>Grand Grade</th><th>Attempt Records</th><th>Action</th></tr>`;
+        head.innerHTML = headerHtml;
+
+        if (!data.students || data.students.length === 0) {
+          body.innerHTML = `
+            <tr>
+              <td colspan="${(data.subjects || []).length + 5}" class="empty-state-cell">
+                No student information yet.
+              </td>
+            </tr>
+          `;
+        } else {
+          data.students.forEach((student) => {
+            let rowHtml = `<tr><td>${student.student_name}</td>`;
+
+            (data.subjects || []).forEach((subject) => {
+              const item = student.subjects[String(subject.id)];
+              rowHtml += `
+                <td>
+                  ${item.score} / ${item.total}
+                  <div class="mini-meta">
+                    Grade: ${item.grade}<br>
+                    Latest Attempt: ${item.latest_attempt || 0}<br>
+                    Total Attempts: ${item.attempt_count || 0}
+                  </div>
+                </td>
+              `;
+            });
+
+            rowHtml += `
+              <td>${student.grand_score} / ${student.grand_total}</td>
+              <td>${student.grand_grade}</td>
+              <td>${student.total_attempt_records}</td>
+              <td>
+                <button class="danger-btn table-delete-btn" onclick="deleteStudent('${student.student_name.replace(/'/g, "\\'")}')">
+                  Delete
+                </button>
+              </td>
+            </tr>
+            `;
+
+            body.innerHTML += rowHtml;
+          });
+        }
+
+        if (!data.attempts || data.attempts.length === 0) {
+          attemptBody.innerHTML = `
+            <tr>
+              <td colspan="6" class="empty-state-cell">No attempt history yet.</td>
+            </tr>
+          `;
+        } else {
+          data.attempts.forEach((item) => {
+            attemptBody.innerHTML += `
+              <tr>
+                <td>${item.student_name}</td>
+                <td>${item.subject_name}</td>
+                <td>${item.attempt_number}</td>
+                <td>${item.score} / ${item.total}</td>
+                <td>${item.grade}</td>
+                <td>${item.created_at}</td>
+              </tr>
+            `;
+          });
+        }
+      }
+
+      async function deleteStudent(studentName) {
+        const confirmed = confirm(
+          `Are you sure you want to delete ${studentName} and all their results?`,
+        );
+        if (!confirmed) return;
+
+        const res = await fetchJSON("/delete_student", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            student_name: studentName,
+          }),
+        });
+
+        alert((res.data && res.data.message) || "Done.");
+        loadStudentReport(false);
+        loadActiveStudents(false);
       }
 
       loadSubjects();

@@ -3,30 +3,38 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Mock Exam</title>
+    <title>Mock Exam CBT</title>
     <link rel="stylesheet" href="/static/style.css" />
   </head>
   <body class="student-body">
     <div class="student-page">
-      <div class="student-header-card">
-        <div>
-          <h1>Mock Exam Platform</h1>
+      <div class="student-header-card student-hero-card">
+        <div class="student-header-left">
+          <div class="brand-badge">Computer Based Test</div>
+          <h1>Mock Exam CBT Platform</h1>
           <p>
-            Save your name first, choose a subject, then answer your questions
-            carefully.
+            Save your name, select any available subject, answer questions, and
+            submit when you are done. Your result will appear immediately after
+            submission.
           </p>
         </div>
 
-        <div class="timer-box">
-          <span>Time Left</span>
+        <div class="timer-box" id="timerBox">
+          <span>Exam Timer</span>
           <h2 id="timer">60:00</h2>
+          <small>1 hour duration</small>
         </div>
       </div>
 
-      <div class="subject-select-card">
-        <div class="student-name-save-row">
+      <div class="name-save-card" id="nameSaveCard">
+        <div class="card-section-title">
+          <h2>Student Registration</h2>
+          <p>Enter your full name before you begin the examination.</p>
+        </div>
+
+        <div class="name-save-grid">
           <div class="student-input-group">
-            <label for="studentName">Student Name</label>
+            <label for="studentName">Student Full Name</label>
             <input
               type="text"
               id="studentName"
@@ -34,55 +42,100 @@
             />
           </div>
 
-          <button class="primary-btn name-save-btn" onclick="saveStudentName()">
+          <button
+            id="saveNameBtn"
+            class="primary-btn name-save-btn"
+            onclick="saveStudentName()"
+          >
             Save Name
           </button>
         </div>
 
-        <div id="savedStudentBanner" class="saved-student-banner hidden">
-          Student: <strong id="savedStudentNameText"></strong>
+        <p class="helper-note">
+          If this name already exists, the system will ask whether this is a
+          retake for the same student.
+        </p>
+      </div>
+
+      <div id="savedStudentBanner" class="saved-student-banner hidden">
+        <div>Candidate: <strong id="savedStudentNameText"></strong></div>
+        <div class="saved-student-status">Ready for exam</div>
+      </div>
+
+      <div class="subjects-panel-card">
+        <div class="subjects-panel-top">
+          <h2>Available Subjects</h2>
+          <p>
+            Click any subject below to start. You can switch between subjects at
+            any time before final submission.
+          </p>
         </div>
 
-        <div class="subject-row">
-          <div class="student-input-group">
-            <label for="subjectSelect">Available Subjects</label>
-            <select id="subjectSelect"></select>
-          </div>
-
-          <button class="primary-btn" onclick="startSelectedSubject()">
-            Start Subject
-          </button>
-        </div>
+        <div id="subjectRow" class="subject-buttons-row"></div>
       </div>
 
       <div id="examArea" class="exam-area hidden">
-        <div class="question-view-card">
-          <div class="question-view-top">
-            <span class="question-count" id="questionCount"
-              >Question 1 of 1</span
-            >
-            <span class="subject-name-pill" id="subjectNamePill">Subject</span>
+        <div class="cbt-shell">
+          <div class="cbt-main-panel">
+            <div class="question-view-card question-view-pro">
+              <div class="question-view-top">
+                <span class="question-count" id="questionCount">
+                  Question 1 of 1
+                </span>
+                <span class="subject-name-pill" id="subjectNamePill">
+                  Subject
+                </span>
+              </div>
+
+              <h3 id="questionText">Question text</h3>
+
+              <div id="optionsContainer" class="options-list"></div>
+
+              <div class="question-navigation">
+                <button class="secondary-btn" onclick="prevQuestion()">
+                  Previous
+                </button>
+                <button class="primary-btn" onclick="nextQuestion()">
+                  Next
+                </button>
+              </div>
+            </div>
           </div>
 
-          <h3 id="questionText">Question text</h3>
+          <div class="cbt-side-panel">
+            <div class="side-card">
+              <h3>Question Palette</h3>
+              <div id="questionPalette" class="question-palette"></div>
+              <div class="palette-legend">
+                <div class="legend-item">
+                  <span class="legend-box legend-current"></span>
+                  Current
+                </div>
+                <div class="legend-item">
+                  <span class="legend-box legend-answered"></span>
+                  Answered
+                </div>
+                <div class="legend-item">
+                  <span class="legend-box legend-unanswered"></span>
+                  Unanswered
+                </div>
+              </div>
+            </div>
 
-          <div id="optionsContainer" class="options-list"></div>
-        </div>
-
-        <div class="question-navigation">
-          <button class="secondary-btn" onclick="prevQuestion()">
-            Previous
-          </button>
-          <button class="primary-btn" onclick="nextQuestion()">Next</button>
+            <div class="side-card">
+              <h3>Subject Progress</h3>
+              <div id="subjectProgressList" class="subject-progress-list"></div>
+            </div>
+          </div>
         </div>
       </div>
 
       <button
         id="submitBtn"
         class="submit-fixed-btn hidden"
-        onclick="submitExam()"
+        onclick="submitAllSubjects()"
       >
-        Submit Exam
+        Submit All Subjects
       </button>
     </div>
 
