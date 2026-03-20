@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Admin Login</title>
+    <link rel="stylesheet" href="/static/style.css" />
+  </head>
+  <body class="login-body">
+    <div class="login-page-wrap">
+      <div class="login-card">
+        <div class="login-brand-top">
+          <h1>Mock Exam Admin</h1>
+          <p>Authorized access only. Enter your admin username and password.</p>
+        </div>
+
+        {% if error_message %}
+        <div class="login-error-message">{{ error_message }}</div>
+        {% endif %}
+
+        <form method="POST" class="login-form">
+          <div class="login-form-group">
+            <label for="username">Username</label>
+            <input
+              type="text"
+              id="username"
+              name="username"
+              placeholder="Enter username"
+              required
+            />
+          </div>
+
+          <div class="login-form-group">
+            <label for="password">Password</label>
+            <input
+              type="password"
+              id="password"
+              name="password"
+              placeholder="Enter password"
+              required
+            />
+          </div>
+
+          <button type="submit" class="login-submit-btn">Login</button>
+        </form>
+      </div>
+    </div>
+  </body>
+</html>

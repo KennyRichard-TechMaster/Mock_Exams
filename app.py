@@ -1,13 +1,33 @@
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, jsonify, session, redirect, url_for
 import sqlite3
+from functools import wraps
 
 app = Flask(__name__)
+app.secret_key = "kenny_secure_key_1234richard_change_this_later"
 
 
 def get_db():
     conn = sqlite3.connect("database.db")
     conn.row_factory = sqlite3.Row
     return conn
+
+
+def admin_required(view_func):
+    @wraps(view_func)
+    def wrapped_view(*args, **kwargs):
+        if not session.get("admin_logged_in"):
+            return redirect(url_for("login"))
+        return view_func(*args, **kwargs)
+    return wrapped_view
+
+
+def admin_api_required(view_func):
+    @wraps(view_func)
+    def wrapped_view(*args, **kwargs):
+        if not session.get("admin_logged_in"):
+            return jsonify({"message": "Unauthorized access."}), 401
+        return view_func(*args, **kwargs)
+    return wrapped_view
 
 
 def setup_database():
@@ -82,9 +102,38 @@ def home():
     return render_template("index.html")
 
 
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    if session.get("admin_logged_in"):
+        return redirect(url_for("admin"))
+
+    error_message = ""
+
+    if request.method == "POST":
+        username = request.form.get("username", "").strip()
+        password = request.form.get("password", "").strip()
+
+        if username == "Kenny" and password == "1234richard":
+            session["admin_logged_in"] = True
+            session["admin_username"] = username
+            return redirect(url_for("admin"))
+        else:
+            error_message = "Invalid username or password."
+
+    return render_template("login.html", error_message=error_message)
+
+
+@app.route("/logout")
+def logout():
+    session.pop("admin_logged_in", None)
+    session.pop("admin_username", None)
+    return redirect(url_for("login"))
+
+
 @app.route("/admin")
+@admin_required
 def admin():
-    return render_template("admin.html")
+    return render_template("admin.html", admin_username=session.get("admin_username", "Admin"))
 
 
 @app.route("/get_subjects")
@@ -103,6 +152,7 @@ def get_subjects():
 
 
 @app.route("/update_subject_name", methods=["POST"])
+@admin_api_required
 def update_subject_name():
     data = request.json
     subject_id = data.get("subject_id")
@@ -145,6 +195,7 @@ def save_student():
 
 
 @app.route("/save_question", methods=["POST"])
+@admin_api_required
 def save_question():
     data = request.json
 
@@ -197,6 +248,7 @@ def save_question():
 
 
 @app.route("/clear_question", methods=["POST"])
+@admin_api_required
 def clear_question():
     data = request.json
     subject_id = data.get("subject_id")
@@ -311,6 +363,7 @@ def submit_exam():
 
 
 @app.route("/get_student_report")
+@admin_api_required
 def get_student_report():
     conn = get_db()
     cursor = conn.cursor()
