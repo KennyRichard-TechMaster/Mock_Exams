@@ -113,7 +113,12 @@ def login():
         username = request.form.get("username", "").strip()
         password = request.form.get("password", "").strip()
 
-        if username == "Kenny" and password == "1234richard":
+        admins = {
+            "Kenny": "1234richard",
+            "Taiye": "1234taiye"
+        }
+
+        if username in admins and admins[username] == password:
             session["admin_logged_in"] = True
             session["admin_username"] = username
             return redirect(url_for("admin"))
