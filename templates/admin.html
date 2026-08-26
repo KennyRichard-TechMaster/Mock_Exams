@@ -3,122 +3,195 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Admin Dashboard</title>
+    <title>VIEK Assessment Admin</title>
     <link rel="stylesheet" href="/static/style.css" />
   </head>
   <body class="admin-body">
-    <div class="admin-page">
-      <div class="admin-header-card admin-header-pro">
+    <main class="admin-page">
+      <section class="admin-header-card admin-header-pro">
         <div class="admin-header-top-row">
           <div>
-            <div class="brand-badge">Admin Dashboard</div>
-            <h1>Mock Exam Admin Dashboard</h1>
+            <div class="brand-badge">Admin Database</div>
+            <h1>VIEK Assessment Admin</h1>
             <p>
-              Welcome, {{ admin_username }}. Manage subjects, enter CBT
-              questions, monitor active students, view grades and scores, and
-              delete student records when necessary.
+              Welcome, {{ admin_username }}. Manage the questions, correct
+              answers, timer, active employees, and assessment history.
             </p>
           </div>
 
           <div class="admin-header-actions">
+            <a href="/" class="secondary-btn admin-logout-link">Employee View</a>
             <a href="/logout" class="secondary-btn admin-logout-link">Logout</a>
           </div>
         </div>
+      </section>
+
+      <div class="subject-tabs-row">
+        <button class="subject-tab active-subject-tab" id="questionsTab" onclick="showPanel('questions')">
+          Questions
+        </button>
+        <button class="subject-tab" id="historyTab" onclick="showPanel('history')">
+          History
+        </button>
       </div>
 
-      <div class="subject-tabs-row" id="subjectTabs"></div>
-
-      <div id="subjectManagementSection">
+      <section id="questionsPanel">
         <div class="subject-editor-card">
           <div class="subject-editor-left">
-            <span class="subject-label">Current Subject</span>
-            <h2 id="currentSubjectTitle">Subject 1</h2>
-            <p id="currentSubjectQuestionInfo" class="subject-question-info">
-              40 Questions
-            </p>
+            <span class="subject-label">Assessment</span>
+            <h2 id="assessmentTitle">AI Cybersecurity Awareness Assessment</h2>
+            <p id="questionCountText" class="subject-question-info">0 Questions</p>
           </div>
 
           <div class="subject-editor-right">
-            <label for="subjectNameInput">Edit subject name</label>
+            <label for="assessmentNameInput">Assessment name</label>
             <div class="subject-name-edit-wrap">
+              <input id="assessmentNameInput" type="text" />
               <input
-                type="text"
-                id="subjectNameInput"
-                placeholder="Enter subject name"
+                id="timerMinutesInput"
+                type="number"
+                min="1"
+                max="240"
+                title="Timer in minutes"
               />
-              <button class="primary-btn" onclick="saveSubjectName()">
-                Save Subject Name
-              </button>
+              <button class="primary-btn" onclick="saveSettings()">Save Settings</button>
             </div>
           </div>
         </div>
 
         <div class="admin-instruction-card">
-          <strong>Note:</strong> Use the subject tabs to switch between papers.
-          Save each question into its slot. Existing questions in a slot will be
-          updated when saved again.
+          <strong>Question bank:</strong> Every saved question below is shown to
+          employees. Add more questions any time, choose the correct answer, and
+          delete questions you no longer want included.
+        </div>
+
+        <div class="question-admin-card">
+          <div class="question-admin-top">
+            <h3 id="formTitle">Add New Question</h3>
+            <span class="slot-badge" id="editingBadge">New</span>
+          </div>
+
+          <input type="hidden" id="questionIdInput" />
+
+          <div class="form-group">
+            <label for="categoryInput">Category</label>
+            <input
+              id="categoryInput"
+              type="text"
+              placeholder="Example: Phishing emails"
+            />
+          </div>
+
+          <div class="form-group">
+            <label for="questionInput">Question</label>
+            <textarea
+              id="questionInput"
+              rows="3"
+              placeholder="Type the workplace scenario or question"
+            ></textarea>
+          </div>
+
+          <div class="options-grid">
+            <div class="form-group">
+              <label for="optionAInput">Option A</label>
+              <input id="optionAInput" type="text" placeholder="Enter option A" />
+            </div>
+
+            <div class="form-group">
+              <label for="optionBInput">Option B</label>
+              <input id="optionBInput" type="text" placeholder="Enter option B" />
+            </div>
+
+            <div class="form-group">
+              <label for="optionCInput">Option C</label>
+              <input id="optionCInput" type="text" placeholder="Enter option C" />
+            </div>
+
+            <div class="form-group">
+              <label for="optionDInput">Option D</label>
+              <input id="optionDInput" type="text" placeholder="Enter option D" />
+            </div>
+          </div>
+
+          <div class="question-admin-bottom">
+            <div class="form-group answer-group">
+              <label for="answerInput">Correct Answer</label>
+              <select id="answerInput">
+                <option value="">Select</option>
+                <option value="A">A</option>
+                <option value="B">B</option>
+                <option value="C">C</option>
+                <option value="D">D</option>
+              </select>
+            </div>
+
+            <div class="question-actions">
+              <button class="primary-btn" onclick="saveQuestion()">Save Question</button>
+              <button class="secondary-btn" onclick="resetQuestionForm()">Clear Form</button>
+            </div>
+          </div>
         </div>
 
         <div id="questionsContainer" class="questions-grid"></div>
-      </div>
+      </section>
 
-      <div id="studentInfoSection" class="student-results-card hidden">
+      <section id="historyPanel" class="student-results-card hidden">
         <div class="student-results-top">
           <div>
-            <h2>Student Information</h2>
+            <h2>Assessment History</h2>
             <p class="table-note">
-              View latest scores, grades, attempts, active students, and delete
-              any student record if required.
+              View every submitted attempt, score, risk level, weak areas, and
+              active employees who started but have not submitted yet.
             </p>
           </div>
-          <button class="secondary-btn" onclick="loadStudentReport()">
-            Refresh Student Info
-          </button>
+          <button class="secondary-btn" onclick="loadAdminData()">Refresh</button>
         </div>
 
         <div class="active-students-card">
           <div class="active-students-top">
-            <h3>Active Students</h3>
-            <button class="secondary-btn" onclick="loadActiveStudents()">
-              Refresh Active Students
-            </button>
+            <h3>Active Employees</h3>
           </div>
-          <div id="activeStudentsList" class="active-students-list"></div>
+          <div id="activeEmployeesList" class="active-students-list"></div>
         </div>
 
         <div class="table-wrap">
-          <table class="results-table">
-            <thead id="studentReportHead"></thead>
-            <tbody id="studentReportBody"></tbody>
+          <table class="results-table admin-history-table">
+            <thead>
+              <tr>
+                <th>Employee</th>
+                <th>Company</th>
+                <th>Attempt</th>
+                <th>Score</th>
+                <th>Percentage</th>
+                <th>Risk</th>
+                <th>Weak Areas</th>
+                <th>Date</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="historyBody"></tbody>
           </table>
         </div>
-
-        <div class="attempt-history-wrap">
-          <h3 class="attempt-history-title">Attempt History</h3>
-          <div class="table-wrap">
-            <table class="results-table">
-              <thead>
-                <tr>
-                  <th>Student Name</th>
-                  <th>Subject</th>
-                  <th>Attempt</th>
-                  <th>Score</th>
-                  <th>Grade</th>
-                  <th>Date</th>
-                </tr>
-              </thead>
-              <tbody id="attemptHistoryBody"></tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-    </div>
+      </section>
+    </main>
 
     <script>
-      let currentSubjectId = 1;
-      let subjects = [];
-      let currentView = "subject";
-      let autoRefreshInterval = null;
+      let adminQuestions = [];
+      let adminResults = [];
+      let activeEmployees = [];
+
+      function getEl(id) {
+        return document.getElementById(id);
+      }
+
+      function escapeHtml(value) {
+        return String(value ?? "")
+          .replaceAll("&", "&amp;")
+          .replaceAll("<", "&lt;")
+          .replaceAll(">", "&gt;")
+          .replaceAll('"', "&quot;")
+          .replaceAll("'", "&#039;");
+      }
 
       async function fetchJSON(url, options = {}) {
         const response = await fetch(url, options);
@@ -130,242 +203,152 @@
           data = null;
         }
 
-        return {
-          ok: response.ok,
-          status: response.status,
-          data,
-        };
+        return { ok: response.ok, status: response.status, data };
       }
 
-      async function loadSubjects() {
-        const res = await fetchJSON("/get_subjects");
+      function showPanel(panel) {
+        const isHistory = panel === "history";
+
+        getEl("questionsPanel").classList.toggle("hidden", isHistory);
+        getEl("historyPanel").classList.toggle("hidden", !isHistory);
+        getEl("questionsTab").classList.toggle("active-subject-tab", !isHistory);
+        getEl("historyTab").classList.toggle("active-subject-tab", isHistory);
+
+        if (isHistory) {
+          loadAdminData();
+        }
+      }
+
+      async function loadAdminData() {
+        const res = await fetchJSON("/admin_data");
+
         if (!res.ok) {
-          alert("Unable to load subjects.");
+          alert((res.data && res.data.message) || "Unable to load admin data.");
           return;
         }
 
-        subjects = Array.isArray(res.data) ? res.data : [];
-        renderTabs();
-        setCurrentSubject(currentSubjectId);
+        adminQuestions = Array.isArray(res.data.questions) ? res.data.questions : [];
+        adminResults = Array.isArray(res.data.results) ? res.data.results : [];
+        activeEmployees = Array.isArray(res.data.active_employees)
+          ? res.data.active_employees
+          : [];
+
+        const settings = res.data.settings || {};
+        getEl("assessmentTitle").innerText =
+          settings.assessment_name || "AI Cybersecurity Awareness Assessment";
+        getEl("assessmentNameInput").value =
+          settings.assessment_name || "AI Cybersecurity Awareness Assessment";
+        getEl("timerMinutesInput").value = Number(settings.timer_minutes || 20);
+        getEl("questionCountText").innerText = `${adminQuestions.length} Questions`;
+
+        renderQuestions();
+        renderHistory();
+        renderActiveEmployees();
       }
 
-      function renderTabs() {
-        const tabs = document.getElementById("subjectTabs");
-        tabs.innerHTML = "";
+      async function saveSettings() {
+        const assessmentName = getEl("assessmentNameInput").value.trim();
+        const timerMinutes = Number(getEl("timerMinutesInput").value || 20);
 
-        subjects.forEach((subject) => {
-          const activeClass =
-            currentView === "subject" && subject.id === currentSubjectId
-              ? "active-subject-tab"
-              : "";
-
-          tabs.innerHTML += `
-            <button
-              class="subject-tab ${activeClass}"
-              onclick="setCurrentSubject(${subject.id})"
-            >
-              ${subject.name} (${subject.total_questions})
-            </button>
-          `;
-        });
-
-        const infoActiveClass =
-          currentView === "info" ? "active-subject-tab" : "";
-
-        tabs.innerHTML += `
-          <button
-            class="subject-tab ${infoActiveClass}"
-            onclick="showStudentInfo()"
-          >
-            Student Info
-          </button>
-        `;
-      }
-
-      function setCurrentSubject(subjectId) {
-        stopAutoRefresh();
-
-        currentView = "subject";
-        currentSubjectId = subjectId;
-
-        document
-          .getElementById("subjectManagementSection")
-          .classList.remove("hidden");
-        document.getElementById("studentInfoSection").classList.add("hidden");
-
-        const subject = subjects.find((s) => s.id === subjectId);
-
-        document.getElementById("currentSubjectTitle").innerText = subject
-          ? subject.name
-          : `Subject ${subjectId}`;
-        document.getElementById("currentSubjectQuestionInfo").innerText =
-          subject ? `${subject.total_questions} Questions` : "";
-        document.getElementById("subjectNameInput").value = subject
-          ? subject.name
-          : "";
-
-        renderTabs();
-        renderQuestionSlots();
-        loadSavedQuestions();
-      }
-
-      function showStudentInfo() {
-        currentView = "info";
-        renderTabs();
-        document
-          .getElementById("subjectManagementSection")
-          .classList.add("hidden");
-        document
-          .getElementById("studentInfoSection")
-          .classList.remove("hidden");
-
-        loadStudentReport();
-        loadActiveStudents();
-        startAutoRefresh();
-      }
-
-      function startAutoRefresh() {
-        stopAutoRefresh();
-        autoRefreshInterval = setInterval(() => {
-          if (currentView === "info") {
-            loadStudentReport(false);
-            loadActiveStudents(false);
-          }
-        }, 5000);
-      }
-
-      function stopAutoRefresh() {
-        if (autoRefreshInterval) {
-          clearInterval(autoRefreshInterval);
-          autoRefreshInterval = null;
-        }
-      }
-
-      async function saveSubjectName() {
-        const name = document.getElementById("subjectNameInput").value.trim();
-
-        if (!name) {
-          alert("Please enter a subject name.");
-          return;
-        }
-
-        const res = await fetchJSON("/update_subject_name", {
+        const res = await fetchJSON("/update_settings", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            subject_id: currentSubjectId,
-            name: name,
+            assessment_name: assessmentName,
+            timer_minutes: timerMinutes,
           }),
         });
 
-        if (!res.ok) {
-          alert(
-            (res.data && res.data.message) || "Unable to save subject name.",
-          );
+        alert((res.data && res.data.message) || "Settings saved.");
+
+        if (res.ok) {
+          loadAdminData();
+        }
+      }
+
+      function renderQuestions() {
+        const container = getEl("questionsContainer");
+        container.innerHTML = "";
+
+        if (!adminQuestions.length) {
+          container.innerHTML = `
+            <div class="empty-subject-state">
+              No questions have been saved yet.
+            </div>
+          `;
           return;
         }
 
-        alert(res.data.message);
-        await loadSubjects();
-      }
-
-      function renderQuestionSlots() {
-        const container = document.getElementById("questionsContainer");
-        container.innerHTML = "";
-
-        const subject = subjects.find((s) => s.id === currentSubjectId);
-        const totalQuestions = subject ? subject.total_questions : 40;
-
-        for (let i = 1; i <= totalQuestions; i++) {
+        adminQuestions.forEach((item) => {
           container.innerHTML += `
             <div class="question-admin-card">
               <div class="question-admin-top">
-                <h3>Question ${i}</h3>
-                <span class="slot-badge">Slot ${i}</span>
+                <div>
+                  <h3>Question ${Number(item.slot_number || 0)}</h3>
+                  <p class="mini-meta">${escapeHtml(item.category || "")}</p>
+                </div>
+                <span class="slot-badge">Answer ${escapeHtml(item.answer || "")}</span>
               </div>
 
-              <div class="form-group">
-                <label for="question_${i}">Question</label>
-                <textarea id="question_${i}" rows="3" placeholder="Type your question here"></textarea>
+              <p class="admin-question-text">${escapeHtml(item.question || "")}</p>
+
+              <div class="admin-options-list">
+                <div>A. ${escapeHtml(item.option_a || "")}</div>
+                <div>B. ${escapeHtml(item.option_b || "")}</div>
+                <div>C. ${escapeHtml(item.option_c || "")}</div>
+                <div>D. ${escapeHtml(item.option_d || "")}</div>
               </div>
 
-              <div class="options-grid">
-                <div class="form-group">
-                  <label for="a_${i}">Option A</label>
-                  <input type="text" id="a_${i}" placeholder="Enter option A" />
-                </div>
-
-                <div class="form-group">
-                  <label for="b_${i}">Option B</label>
-                  <input type="text" id="b_${i}" placeholder="Enter option B" />
-                </div>
-
-                <div class="form-group">
-                  <label for="c_${i}">Option C</label>
-                  <input type="text" id="c_${i}" placeholder="Enter option C" />
-                </div>
-
-                <div class="form-group">
-                  <label for="d_${i}">Option D</label>
-                  <input type="text" id="d_${i}" placeholder="Enter option D" />
-                </div>
-              </div>
-
-              <div class="question-admin-bottom">
-                <div class="form-group answer-group">
-                  <label for="answer_${i}">Correct Answer</label>
-                  <select id="answer_${i}">
-                    <option value="">Select</option>
-                    <option value="A">A</option>
-                    <option value="B">B</option>
-                    <option value="C">C</option>
-                    <option value="D">D</option>
-                  </select>
-                </div>
-
-                <div class="question-actions">
-                  <button class="primary-btn" onclick="saveQuestion(${i})">Save</button>
-                  <button class="danger-btn" onclick="clearQuestion(${i})">Clear</button>
-                </div>
+              <div class="question-actions admin-card-actions">
+                <button class="secondary-btn" onclick="editQuestion(${Number(item.id)})">Edit</button>
+                <button class="danger-btn" onclick="deleteQuestion(${Number(item.id)})">Delete</button>
               </div>
             </div>
           `;
-        }
-      }
-
-      async function loadSavedQuestions() {
-        const res = await fetchJSON(
-          `/get_questions_by_subject/${currentSubjectId}`,
-        );
-        if (!res.ok) return;
-
-        const questions = Array.isArray(res.data) ? res.data : [];
-
-        questions.forEach((q) => {
-          if (document.getElementById(`question_${q.slot_number}`)) {
-            document.getElementById(`question_${q.slot_number}`).value =
-              q.question;
-            document.getElementById(`a_${q.slot_number}`).value = q.option_a;
-            document.getElementById(`b_${q.slot_number}`).value = q.option_b;
-            document.getElementById(`c_${q.slot_number}`).value = q.option_c;
-            document.getElementById(`d_${q.slot_number}`).value = q.option_d;
-            document.getElementById(`answer_${q.slot_number}`).value = q.answer;
-          }
         });
       }
 
-      async function saveQuestion(slotNumber) {
+      function editQuestion(id) {
+        const item = adminQuestions.find((question) => Number(question.id) === Number(id));
+        if (!item) return;
+
+        getEl("questionIdInput").value = item.id;
+        getEl("categoryInput").value = item.category || "";
+        getEl("questionInput").value = item.question || "";
+        getEl("optionAInput").value = item.option_a || "";
+        getEl("optionBInput").value = item.option_b || "";
+        getEl("optionCInput").value = item.option_c || "";
+        getEl("optionDInput").value = item.option_d || "";
+        getEl("answerInput").value = item.answer || "";
+        getEl("formTitle").innerText = `Edit Question ${Number(item.slot_number || 0)}`;
+        getEl("editingBadge").innerText = "Editing";
+
+        window.scrollTo({ top: getEl("formTitle").offsetTop - 30, behavior: "smooth" });
+      }
+
+      function resetQuestionForm() {
+        getEl("questionIdInput").value = "";
+        getEl("categoryInput").value = "";
+        getEl("questionInput").value = "";
+        getEl("optionAInput").value = "";
+        getEl("optionBInput").value = "";
+        getEl("optionCInput").value = "";
+        getEl("optionDInput").value = "";
+        getEl("answerInput").value = "";
+        getEl("formTitle").innerText = "Add New Question";
+        getEl("editingBadge").innerText = "New";
+      }
+
+      async function saveQuestion() {
         const payload = {
-          subject_id: currentSubjectId,
-          slot_number: slotNumber,
-          question: document
-            .getElementById(`question_${slotNumber}`)
-            .value.trim(),
-          option_a: document.getElementById(`a_${slotNumber}`).value.trim(),
-          option_b: document.getElementById(`b_${slotNumber}`).value.trim(),
-          option_c: document.getElementById(`c_${slotNumber}`).value.trim(),
-          option_d: document.getElementById(`d_${slotNumber}`).value.trim(),
-          answer: document.getElementById(`answer_${slotNumber}`).value,
+          id: getEl("questionIdInput").value || null,
+          category: getEl("categoryInput").value.trim(),
+          question: getEl("questionInput").value.trim(),
+          option_a: getEl("optionAInput").value.trim(),
+          option_b: getEl("optionBInput").value.trim(),
+          option_c: getEl("optionCInput").value.trim(),
+          option_d: getEl("optionDInput").value.trim(),
+          answer: getEl("answerInput").value,
         };
 
         const res = await fetchJSON("/save_question", {
@@ -375,179 +358,114 @@
         });
 
         alert((res.data && res.data.message) || "Done.");
+
+        if (res.ok) {
+          resetQuestionForm();
+          loadAdminData();
+        }
       }
 
-      async function clearQuestion(slotNumber) {
-        const res = await fetchJSON("/clear_question", {
+      async function deleteQuestion(id) {
+        if (!confirm("Delete this question from the employee assessment?")) return;
+
+        const res = await fetchJSON("/delete_question", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            subject_id: currentSubjectId,
-            slot_number: slotNumber,
-          }),
+          body: JSON.stringify({ id }),
         });
 
-        if (document.getElementById(`question_${slotNumber}`)) {
-          document.getElementById(`question_${slotNumber}`).value = "";
-          document.getElementById(`a_${slotNumber}`).value = "";
-          document.getElementById(`b_${slotNumber}`).value = "";
-          document.getElementById(`c_${slotNumber}`).value = "";
-          document.getElementById(`d_${slotNumber}`).value = "";
-          document.getElementById(`answer_${slotNumber}`).value = "";
-        }
+        alert((res.data && res.data.message) || "Done.");
 
-        alert((res.data && res.data.message) || "Cleared.");
+        if (res.ok) {
+          resetQuestionForm();
+          loadAdminData();
+        }
       }
 
-      async function loadActiveStudents(showAlertOnError = true) {
-        const res = await fetchJSON("/get_active_students");
-        const list = document.getElementById("activeStudentsList");
+      function renderActiveEmployees() {
+        const list = getEl("activeEmployeesList");
         list.innerHTML = "";
 
-        if (!res.ok) {
-          if (showAlertOnError) {
-            alert(
-              (res.data && res.data.message) ||
-                "Unable to load active students.",
-            );
-          }
-          list.innerHTML = `<div class="mini-empty-state">Unable to load active students.</div>`;
+        if (!activeEmployees.length) {
+          list.innerHTML = `<div class="mini-empty-state">No active employees right now.</div>`;
           return;
         }
 
-        const data = Array.isArray(res.data) ? res.data : [];
-
-        if (!data.length) {
-          list.innerHTML = `<div class="mini-empty-state">No active students right now.</div>`;
-          return;
-        }
-
-        data.forEach((student) => {
+        activeEmployees.forEach((item) => {
           list.innerHTML += `
             <div class="active-student-item">
-              <div class="active-student-name">${student.name}</div>
-              <div class="active-student-time">Started: ${student.started_at}</div>
-              <div class="active-student-time">Status: ${student.status || "Active"}</div>
-              <div class="active-student-time">Attempts: ${student.total_attempts || 0}</div>
+              <div class="active-student-name">${escapeHtml(item.name || "")}</div>
+              <div class="active-student-time">Company: ${escapeHtml(item.company_name || "")}</div>
+              <div class="active-student-time">Started: ${escapeHtml(item.started_at || "")}</div>
+              <div class="active-student-time">Status: ${escapeHtml(item.status || "Active")}</div>
             </div>
           `;
         });
       }
 
-      async function loadStudentReport(showAlertOnError = true) {
-        const res = await fetchJSON("/get_student_report");
-        if (!res.ok) {
-          if (showAlertOnError) {
-            alert(
-              (res.data && res.data.message) ||
-                "Unable to load student report.",
-            );
-          }
+      function parseWeakAreas(value) {
+        try {
+          const parsed = JSON.parse(value || "[]");
+          return Array.isArray(parsed) ? parsed : [];
+        } catch (error) {
+          return [];
+        }
+      }
+
+      function renderHistory() {
+        const body = getEl("historyBody");
+        body.innerHTML = "";
+
+        if (!adminResults.length) {
+          body.innerHTML = `
+            <tr>
+              <td colspan="9" class="empty-state-cell">No assessment history yet.</td>
+            </tr>
+          `;
           return;
         }
 
-        const data = res.data || {};
-        const head = document.getElementById("studentReportHead");
-        const body = document.getElementById("studentReportBody");
-        const attemptBody = document.getElementById("attemptHistoryBody");
+        adminResults.forEach((item) => {
+          const weakAreas = parseWeakAreas(item.weak_areas);
+          const weakAreaText = weakAreas.length ? weakAreas.join(", ") : "None";
 
-        head.innerHTML = "";
-        body.innerHTML = "";
-        attemptBody.innerHTML = "";
-
-        let headerHtml = `<tr><th>Student Name</th>`;
-
-        (data.subjects || []).forEach((subject) => {
-          headerHtml += `<th>${subject.name}</th>`;
-        });
-
-        headerHtml += `<th>Grand Total</th><th>Grand Grade</th><th>Attempt Records</th><th>Action</th></tr>`;
-        head.innerHTML = headerHtml;
-
-        if (!data.students || data.students.length === 0) {
-          body.innerHTML = `
+          body.innerHTML += `
             <tr>
-              <td colspan="${(data.subjects || []).length + 5}" class="empty-state-cell">
-                No student information yet.
-              </td>
-            </tr>
-          `;
-        } else {
-          data.students.forEach((student) => {
-            let rowHtml = `<tr><td>${student.student_name}</td>`;
-
-            (data.subjects || []).forEach((subject) => {
-              const item = student.subjects[String(subject.id)];
-              rowHtml += `
-                <td>
-                  ${item.score} / ${item.total}
-                  <div class="mini-meta">
-                    Grade: ${item.grade}<br>
-                    Latest Attempt: ${item.latest_attempt || 0}<br>
-                    Total Attempts: ${item.attempt_count || 0}
-                  </div>
-                </td>
-              `;
-            });
-
-            rowHtml += `
-              <td>${student.grand_score} / ${student.grand_total}</td>
-              <td>${student.grand_grade}</td>
-              <td>${student.total_attempt_records}</td>
+              <td>${escapeHtml(item.employee_name || "")}</td>
+              <td>${escapeHtml(item.company_name || "")}</td>
+              <td>${Number(item.attempt_number || 0)}</td>
+              <td>${Number(item.score || 0)} / ${Number(item.total || 0)}</td>
+              <td>${Number(item.percentage || 0)}%</td>
+              <td>${escapeHtml(item.risk_level || "-")}</td>
+              <td>${escapeHtml(weakAreaText)}</td>
+              <td>${escapeHtml(item.created_at || "")}</td>
               <td>
-                <button class="danger-btn table-delete-btn" onclick="deleteStudent('${student.student_name.replace(/'/g, "\\'")}')">
+                <button class="danger-btn table-delete-btn" onclick="deleteResult(${Number(item.id)})">
                   Delete
                 </button>
               </td>
             </tr>
-            `;
-
-            body.innerHTML += rowHtml;
-          });
-        }
-
-        if (!data.attempts || data.attempts.length === 0) {
-          attemptBody.innerHTML = `
-            <tr>
-              <td colspan="6" class="empty-state-cell">No attempt history yet.</td>
-            </tr>
           `;
-        } else {
-          data.attempts.forEach((item) => {
-            attemptBody.innerHTML += `
-              <tr>
-                <td>${item.student_name}</td>
-                <td>${item.subject_name}</td>
-                <td>${item.attempt_number}</td>
-                <td>${item.score} / ${item.total}</td>
-                <td>${item.grade}</td>
-                <td>${item.created_at}</td>
-              </tr>
-            `;
-          });
-        }
+        });
       }
 
-      async function deleteStudent(studentName) {
-        const confirmed = confirm(
-          `Are you sure you want to delete ${studentName} and all their results?`,
-        );
-        if (!confirmed) return;
+      async function deleteResult(id) {
+        if (!confirm("Delete this submitted result?")) return;
 
-        const res = await fetchJSON("/delete_student", {
+        const res = await fetchJSON("/delete_result", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            student_name: studentName,
-          }),
+          body: JSON.stringify({ id }),
         });
 
         alert((res.data && res.data.message) || "Done.");
-        loadStudentReport(false);
-        loadActiveStudents(false);
+
+        if (res.ok) {
+          loadAdminData();
+        }
       }
 
-      loadSubjects();
+      loadAdminData();
     </script>
   </body>
 </html>

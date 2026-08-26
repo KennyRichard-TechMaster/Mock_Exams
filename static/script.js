@@ -1,17 +1,13 @@
-let availableSubjects = [];
-let selectedSubjectId = null;
-let selectedSubjectName = "";
-let studentName = "";
-let studentSaved = false;
-let subjectQuestionsCache = {};
-let subjectCurrentIndex = {};
-let allAnswers = {};
+let questions = [];
+let answers = {};
+let currentIndex = 0;
+let employeeName = "";
+let companyName = "";
 let timerInterval = null;
-let totalTimeSeconds = 60 * 60;
+let totalTimeSeconds = 20 * 60;
+let hasStarted = false;
 let hasSubmitted = false;
-let isSavingStudent = false;
-let isLoadingSubject = false;
-let isSubmittingExam = false;
+let isSubmitting = false;
 
 function getEl(id) {
   return document.getElementById(id);
@@ -59,302 +55,129 @@ async function fetchJSON(url, options = {}) {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
-  const nameInput = getEl("studentName");
+  ["employeeName", "companyName"].forEach((id) => {
+    const input = getEl(id);
+    if (!input) return;
 
-  if (nameInput) {
-    nameInput.addEventListener("keydown", (event) => {
+    input.addEventListener("keydown", (event) => {
       if (event.key === "Enter") {
         event.preventDefault();
-        saveStudentName();
+        startAssessment();
       }
     });
-  }
+  });
 
-  loadAvailableSubjects();
-  renderSubjectProgress();
   updateTimerDisplay();
 });
 
-async function loadAvailableSubjects() {
-  const row = getEl("subjectRow");
+async function startAssessment() {
+  const employeeInput = getEl("employeeName");
+  const companyInput = getEl("companyName");
+  const startBtn = getEl("startAssessmentBtn");
 
-  if (row) {
-    row.innerHTML = `
-      <div class="empty-subject-state">
-        Loading available subjects...
-      </div>
-    `;
-  }
+  employeeName = String(employeeInput?.value || "").trim();
+  companyName = String(companyInput?.value || "").trim();
 
-  try {
-    const result = await fetchJSON("/available_subjects");
-
-    if (!result.ok) {
-      throw new Error(
-        (result.data && result.data.message) || "Unable to load subjects.",
-      );
-    }
-
-    availableSubjects = Array.isArray(result.data) ? result.data : [];
-    renderSubjectButtons();
-    renderSubjectProgress();
-  } catch (error) {
-    console.error("Error loading subjects:", error);
-
-    if (row) {
-      row.innerHTML = `
-        <div class="empty-subject-state">
-          Unable to load subjects right now.
-        </div>
-      `;
-    }
-  }
-}
-
-function renderSubjectButtons() {
-  const row = getEl("subjectRow");
-  if (!row) return;
-
-  row.innerHTML = "";
-
-  if (!availableSubjects.length) {
-    row.innerHTML = `
-      <div class="empty-subject-state">
-        No subjects available yet. Admin needs to add questions first.
-      </div>
-    `;
-    return;
-  }
-
-  availableSubjects.forEach((subject) => {
-    const isSelected = selectedSubjectId === subject.id;
-    const answerCount = getAnsweredCountForSubject(subject.id);
-
-    row.innerHTML += `
-      <button
-        type="button"
-        class="subject-cbt-btn ${isSelected ? "subject-cbt-btn-active" : ""}"
-        onclick="selectSubject(${subject.id})"
-      >
-        <span class="subject-cbt-name">${escapeHtml(subject.name)}</span>
-        <span class="subject-cbt-meta">${Number(subject.saved_questions || 0)} Questions Set</span>
-        <span class="subject-cbt-progress">${answerCount} Answered</span>
-      </button>
-    `;
-  });
-}
-
-function renderSubjectProgress() {
-  const container = getEl("subjectProgressList");
-  if (!container) return;
-
-  container.innerHTML = "";
-
-  if (!availableSubjects.length) {
-    container.innerHTML = `
-      <div class="mini-empty-state">No subject progress yet.</div>
-    `;
-    return;
-  }
-
-  availableSubjects.forEach((subject) => {
-    const answered = getAnsweredCountForSubject(subject.id);
-
-    container.innerHTML += `
-      <div class="subject-progress-item ${selectedSubjectId === subject.id ? "subject-progress-item-active" : ""}">
-        <div class="subject-progress-name">${escapeHtml(subject.name)}</div>
-        <div class="subject-progress-meta">${answered} / ${Number(subject.saved_questions || 0)} answered</div>
-      </div>
-    `;
-  });
-}
-
-function getAnsweredCountForSubject(subjectId) {
-  const key = String(subjectId);
-  if (!allAnswers[key]) return 0;
-  return Object.keys(allAnswers[key]).length;
-}
-
-async function saveStudentName() {
-  const nameField = getEl("studentName");
-  const saveBtn = getEl("saveNameBtn");
-
-  if (!nameField) {
-    alert("Student name input is missing.");
-    return;
-  }
-
-  const nameInput = String(nameField.value || "").trim();
-
-  if (!nameInput) {
+  if (!employeeName) {
     alert("Please enter your full name.");
-    nameField.focus();
+    employeeInput?.focus();
     return;
   }
 
-  if (isSavingStudent) return;
-  isSavingStudent = true;
+  if (!companyName) {
+    alert("Please enter your company name.");
+    companyInput?.focus();
+    return;
+  }
 
-  const oldBtnText = saveBtn ? saveBtn.innerText : "Save Name";
+  if (hasStarted) return;
 
-  if (saveBtn) {
-    saveBtn.disabled = true;
-    saveBtn.innerText = "Saving...";
+  const oldText = startBtn ? startBtn.innerText : "Start Assessment";
+
+  if (startBtn) {
+    startBtn.disabled = true;
+    startBtn.innerText = "Starting...";
   }
 
   try {
-    let result = await fetchJSON("/save_student", {
+    const saveResult = await fetchJSON("/save_employee", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        student_name: nameInput,
-        allow_existing: false,
+        employee_name: employeeName,
+        company_name: companyName,
       }),
     });
 
-    if (result.status === 409 && result.data && result.data.exists) {
-      const existingName = result.data.existing_name || nameInput;
-
-      const confirmed = confirm(
-        `${existingName} already exists.\n\nIf this is the same student retaking the exam, press OK.\nIf not, press Cancel and use another name.`,
-      );
-
-      if (!confirmed) {
-        return;
-      }
-
-      result = await fetchJSON("/save_student", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          student_name: existingName,
-          allow_existing: true,
-        }),
-      });
-    }
-
-    if (!result.ok) {
+    if (!saveResult.ok) {
       throw new Error(
-        (result.data && result.data.message) || "Unable to save student name.",
+        (saveResult.data && saveResult.data.message) ||
+          "Unable to save employee details.",
       );
     }
 
-    studentName = (result.data && result.data.student_name) || nameInput;
-    studentSaved = true;
+    const questionResult = await fetchJSON("/assessment_questions");
 
-    setText("savedStudentNameText", studentName);
+    if (!questionResult.ok) {
+      throw new Error(
+        (questionResult.data && questionResult.data.message) ||
+          "Unable to load assessment questions.",
+      );
+    }
+
+    questions = Array.isArray(questionResult.data?.questions)
+      ? questionResult.data.questions
+      : [];
+
+    if (!questions.length) {
+      throw new Error("No assessment questions are available.");
+    }
+
+    const timerMinutes = Number(questionResult.data?.timer_minutes || 20);
+    totalTimeSeconds = Math.max(1, timerMinutes) * 60;
+    setText("timerDurationText", `${timerMinutes} minute duration`);
+
+    hasStarted = true;
+    currentIndex = 0;
+    answers = {};
+
+    setText("savedEmployeeNameText", employeeName);
+    setText("savedCompanyNameText", companyName);
+    hideEl("startCard");
     showEl("savedStudentBanner");
-    hideEl("nameSaveCard");
+    showEl("examArea");
     showEl("submitBtn");
 
-    if (!timerInterval) {
-      startTimer();
-    }
-
-    alert(
-      (result.data && result.data.message) ||
-        "Student name saved successfully.",
-    );
-  } catch (error) {
-    console.error("Error saving name:", error);
-    alert(error.message || "Unable to save student name.");
-  } finally {
-    isSavingStudent = false;
-
-    if (saveBtn) {
-      saveBtn.disabled = false;
-      saveBtn.innerText = oldBtnText;
-    }
-  }
-}
-
-async function selectSubject(subjectId) {
-  if (!studentSaved) {
-    alert("Please save your name first.");
-    return;
-  }
-
-  if (isLoadingSubject) return;
-  isLoadingSubject = true;
-
-  try {
-    selectedSubjectId = subjectId;
-    const subject = availableSubjects.find((s) => s.id === subjectId);
-    selectedSubjectName = subject ? subject.name : `Subject ${subjectId}`;
-
-    const subjectKey = String(subjectId);
-
-    if (!subjectQuestionsCache[subjectKey]) {
-      const result = await fetchJSON(`/get_questions_by_subject/${subjectId}`);
-
-      if (!result.ok) {
-        throw new Error(
-          (result.data && result.data.message) ||
-            "Unable to load questions for this subject.",
-        );
-      }
-
-      const questions = Array.isArray(result.data) ? result.data : [];
-
-      if (!questions.length) {
-        alert("No questions found for this subject.");
-        return;
-      }
-
-      subjectQuestionsCache[subjectKey] = questions;
-
-      if (typeof subjectCurrentIndex[subjectKey] !== "number") {
-        subjectCurrentIndex[subjectKey] = 0;
-      }
-    }
-
-    showEl("examArea");
-    renderSubjectButtons();
-    renderSubjectProgress();
     renderQuestion();
     renderQuestionPalette();
+    updateProgress();
+    startTimer();
 
     const examArea = getEl("examArea");
     if (examArea) {
-      window.scrollTo({
-        top: examArea.offsetTop - 20,
-        behavior: "smooth",
-      });
+      window.scrollTo({ top: examArea.offsetTop - 20, behavior: "smooth" });
     }
   } catch (error) {
-    console.error("Error selecting subject:", error);
-    alert(error.message || "Unable to open subject.");
+    console.error("Assessment start error:", error);
+    alert(error.message || "Unable to start assessment.");
+    hasStarted = false;
   } finally {
-    isLoadingSubject = false;
+    if (startBtn) {
+      startBtn.disabled = false;
+      startBtn.innerText = oldText;
+    }
   }
 }
 
 function renderQuestion() {
-  if (!selectedSubjectId) return;
-
-  const subjectKey = String(selectedSubjectId);
-  const questions = subjectQuestionsCache[subjectKey] || [];
-  const currentIndex = subjectCurrentIndex[subjectKey] || 0;
   const current = questions[currentIndex];
-
   if (!current) return;
 
-  setText(
-    "questionCount",
-    `Question ${currentIndex + 1} of ${questions.length}`,
-  );
-  setText("subjectNamePill", selectedSubjectName || "Subject");
-  setText("questionText", current.question || "Question text");
+  setText("questionCount", `Question ${currentIndex + 1} of ${questions.length}`);
+  setText("categoryPill", current.category || "Cybersecurity Awareness");
+  setText("questionText", current.question || "");
 
-  if (!allAnswers[subjectKey]) {
-    allAnswers[subjectKey] = {};
-  }
-
-  const savedAnswer = allAnswers[subjectKey][String(current.slot_number)] || "";
+  const savedAnswer = answers[String(current.slot_number)] || "";
   const optionsContainer = getEl("optionsContainer");
 
   if (!optionsContainer) return;
@@ -366,9 +189,14 @@ function renderQuestion() {
     ${createOption(current.slot_number, "D", current.option_d, savedAnswer)}
   `;
 
+  const prevBtn = getEl("prevBtn");
+  const nextBtn = getEl("nextBtn");
+
+  if (prevBtn) prevBtn.disabled = currentIndex === 0;
+  if (nextBtn) nextBtn.disabled = currentIndex === questions.length - 1;
+
   renderQuestionPalette();
-  renderSubjectButtons();
-  renderSubjectProgress();
+  updateProgress();
 }
 
 function createOption(slotNumber, letter, text, savedAnswer) {
@@ -390,32 +218,19 @@ function createOption(slotNumber, letter, text, savedAnswer) {
 }
 
 function saveAnswer(slotNumber, answer) {
-  if (!selectedSubjectId) return;
-
-  const subjectKey = String(selectedSubjectId);
-
-  if (!allAnswers[subjectKey]) {
-    allAnswers[subjectKey] = {};
-  }
-
-  allAnswers[subjectKey][String(slotNumber)] = answer;
+  answers[String(slotNumber)] = answer;
   renderQuestion();
 }
 
 function renderQuestionPalette() {
   const palette = getEl("questionPalette");
-  if (!palette || !selectedSubjectId) return;
-
-  const subjectKey = String(selectedSubjectId);
-  const questions = subjectQuestionsCache[subjectKey] || [];
-  const currentIndex = subjectCurrentIndex[subjectKey] || 0;
-  const subjectAnswers = allAnswers[subjectKey] || {};
+  if (!palette) return;
 
   palette.innerHTML = "";
 
   questions.forEach((question, index) => {
     const isCurrent = index === currentIndex;
-    const isAnswered = !!subjectAnswers[String(question.slot_number)];
+    const isAnswered = !!answers[String(question.slot_number)];
 
     palette.innerHTML += `
       <button
@@ -429,44 +244,40 @@ function renderQuestionPalette() {
   });
 }
 
+function updateProgress() {
+  const answeredCount = Object.keys(answers).length;
+  const total = questions.length || 15;
+  const percentage = Math.round((answeredCount / total) * 100);
+
+  setText("progressText", `${answeredCount} / ${total} answered`);
+
+  const fill = getEl("progressFill");
+  if (fill) fill.style.width = `${percentage}%`;
+}
+
 function jumpToQuestion(index) {
-  if (!selectedSubjectId) return;
-
-  const subjectKey = String(selectedSubjectId);
-  const questions = subjectQuestionsCache[subjectKey] || [];
-
   if (index < 0 || index >= questions.length) return;
-
-  subjectCurrentIndex[subjectKey] = index;
+  currentIndex = index;
   renderQuestion();
 }
 
 function nextQuestion() {
-  if (!selectedSubjectId) return;
-
-  const subjectKey = String(selectedSubjectId);
-  const questions = subjectQuestionsCache[subjectKey] || [];
-  const currentIndex = subjectCurrentIndex[subjectKey] || 0;
-
   if (currentIndex < questions.length - 1) {
-    subjectCurrentIndex[subjectKey] = currentIndex + 1;
+    currentIndex += 1;
     renderQuestion();
   }
 }
 
 function prevQuestion() {
-  if (!selectedSubjectId) return;
-
-  const subjectKey = String(selectedSubjectId);
-  const currentIndex = subjectCurrentIndex[subjectKey] || 0;
-
   if (currentIndex > 0) {
-    subjectCurrentIndex[subjectKey] = currentIndex - 1;
+    currentIndex -= 1;
     renderQuestion();
   }
 }
 
 function startTimer() {
+  if (timerInterval) return;
+
   updateTimerDisplay();
 
   timerInterval = setInterval(() => {
@@ -483,7 +294,7 @@ function startTimer() {
       timerInterval = null;
 
       if (!hasSubmitted) {
-        forceSubmitAllSubjects();
+        performSubmission(true);
       }
     }
   }, 1000);
@@ -500,43 +311,35 @@ function updateTimerDisplay() {
   timer.innerText = `${minutes}:${seconds < 10 ? "0" : ""}${seconds}`;
 
   if (timerBox) {
-    if (totalTimeSeconds <= 300) {
-      timerBox.classList.add("timer-danger");
-    } else {
-      timerBox.classList.remove("timer-danger");
-    }
+    timerBox.classList.toggle("timer-danger", totalTimeSeconds <= 120);
   }
 }
 
-async function submitAllSubjects() {
-  if (!studentSaved || !studentName) {
-    alert("Please save your name first.");
+async function submitAssessment() {
+  if (!hasStarted) {
+    alert("Please start the assessment first.");
     return;
   }
 
-  if (!availableSubjects.length) {
-    alert("No available subjects found.");
-    return;
-  }
+  if (hasSubmitted || isSubmitting) return;
 
-  if (hasSubmitted || isSubmittingExam) return;
+  const unanswered = questions.length - Object.keys(answers).length;
+  const message = unanswered
+    ? `You have ${unanswered} unanswered question(s). Submit anyway?`
+    : "Submit assessment now?";
 
-  const confirmed = confirm("Submit all subjects now?");
-  if (!confirmed) return;
+  if (!confirm(message)) return;
 
   await performSubmission(false);
 }
 
-async function forceSubmitAllSubjects() {
-  if (hasSubmitted || isSubmittingExam) return;
-  await performSubmission(true);
-}
-
 async function performSubmission(isForced = false) {
-  isSubmittingExam = true;
+  if (isSubmitting || hasSubmitted) return;
+
+  isSubmitting = true;
 
   const submitBtn = getEl("submitBtn");
-  const oldBtnText = submitBtn ? submitBtn.innerText : "Submit All Subjects";
+  const oldText = submitBtn ? submitBtn.innerText : "Submit Assessment";
 
   if (submitBtn) {
     submitBtn.disabled = true;
@@ -544,18 +347,20 @@ async function performSubmission(isForced = false) {
   }
 
   try {
-    const result = await fetchJSON("/submit_all_subjects", {
+    const result = await fetchJSON("/submit_assessment", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        student_name: studentName,
-        all_answers: allAnswers,
+        employee_name: employeeName,
+        company_name: companyName,
+        answers,
       }),
     });
 
     if (!result.ok) {
       throw new Error(
-        (result.data && result.data.message) || "Unable to submit exam.",
+        (result.data && result.data.message) ||
+          "Unable to submit assessment.",
       );
     }
 
@@ -569,15 +374,14 @@ async function performSubmission(isForced = false) {
     renderResultPage(result.data);
   } catch (error) {
     console.error("Submission error:", error);
-    hasSubmitted = false;
-    alert(error.message || "Unable to submit exam.");
-  } finally {
-    isSubmittingExam = false;
+    alert(error.message || "Unable to submit assessment.");
 
-    if (!hasSubmitted && submitBtn) {
+    if (submitBtn) {
       submitBtn.disabled = false;
-      submitBtn.innerText = oldBtnText;
+      submitBtn.innerText = oldText;
     }
+  } finally {
+    isSubmitting = false;
   }
 }
 
@@ -585,53 +389,84 @@ function renderResultPage(data) {
   const studentPage = document.querySelector(".student-page");
   if (!studentPage) return;
 
-  const summary = Array.isArray(data.summary) ? data.summary : [];
-  let summaryHtml = "";
+  const weakAreas = Array.isArray(data.weak_areas) ? data.weak_areas : [];
+  const breakdown = Array.isArray(data.breakdown) ? data.breakdown : [];
+  const riskClass = String(data.risk_level || "").toLowerCase();
 
-  summary.forEach((item) => {
-    summaryHtml += `
-      <tr>
-        <td>${escapeHtml(item.subject_name || "")}</td>
-        <td>${Number(item.score || 0)} / ${Number(item.total || 0)}</td>
-        <td>${escapeHtml(item.grade || "-")}</td>
-        <td>${Number(item.attempt_number || 0)}</td>
-      </tr>
-    `;
-  });
+  const weakAreasHtml = weakAreas.length
+    ? weakAreas
+        .map((area) => `<li>${escapeHtml(area)}</li>`)
+        .join("")
+    : "<li>No weak areas identified.</li>";
+
+  const breakdownHtml = breakdown
+    .map((item) => {
+      const selected = item.selected_answer || "Not answered";
+      const selectedText = item.selected_text
+        ? ` - ${escapeHtml(item.selected_text)}`
+        : "";
+      const missedHtml = item.is_correct
+        ? ""
+        : `<p class="missed-answer">Correct answer: ${escapeHtml(item.correct_answer)} - ${escapeHtml(item.correct_text)}</p>`;
+
+      return `
+        <div class="breakdown-item ${item.is_correct ? "breakdown-correct" : "breakdown-incorrect"}">
+          <div class="breakdown-top">
+            <strong>Question ${Number(item.slot_number || 0)}</strong>
+            <span>${escapeHtml(item.category || "")}</span>
+          </div>
+          <p>${escapeHtml(item.question || "")}</p>
+          <p class="answer-line">
+            Your answer: ${escapeHtml(selected)}${selectedText}
+          </p>
+          ${missedHtml}
+        </div>
+      `;
+    })
+    .join("");
 
   studentPage.innerHTML = `
     <div class="result-card-wrapper">
-      <div class="question-view-card result-card-center">
-        <div class="result-top-badge">Exam Completed Successfully</div>
-        <h1>CBT Result Summary</h1>
-        <p class="result-line">Student: <strong>${escapeHtml(data.student_name || "")}</strong></p>
-        <h2 class="result-score">Grand Total: ${Number(data.grand_score || 0)} / ${Number(data.grand_total || 0)}</h2>
-        <h3 class="result-grade-line">Overall Grade: ${escapeHtml(data.grand_grade || "-")}</h3>
+      <section class="question-view-card result-card-center">
+        <div class="result-top-badge">Assessment Completed</div>
+        <h1>VIEK Technologies Assessment Result</h1>
+        <p class="result-line">Employee: <strong>${escapeHtml(data.employee_name || "")}</strong></p>
+        <p class="result-line">Company: <strong>${escapeHtml(data.company_name || "")}</strong></p>
 
-        <div class="table-wrap result-table-wrap">
-          <table class="results-table">
-            <thead>
-              <tr>
-                <th>Subject</th>
-                <th>Score</th>
-                <th>Grade</th>
-                <th>Attempt Number</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${summaryHtml}
-            </tbody>
-          </table>
+        <div class="result-metrics">
+          <div>
+            <span>Score</span>
+            <strong>${Number(data.score || 0)} / ${Number(data.total || 0)}</strong>
+          </div>
+          <div>
+            <span>Percentage</span>
+            <strong>${Number(data.percentage || 0)}%</strong>
+          </div>
+          <div class="risk-${escapeHtml(riskClass)}">
+            <span>Risk Level</span>
+            <strong>${escapeHtml(data.risk_level || "-")}</strong>
+          </div>
         </div>
-      </div>
+
+        <div class="weak-area-panel">
+          <h2>Weak Areas</h2>
+          <ul>${weakAreasHtml}</ul>
+        </div>
+
+        <div class="breakdown-panel">
+          <h2>Question Breakdown</h2>
+          ${breakdownHtml}
+        </div>
+      </section>
     </div>
   `;
+
+  window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
-window.saveStudentName = saveStudentName;
-window.selectSubject = selectSubject;
+window.startAssessment = startAssessment;
 window.saveAnswer = saveAnswer;
 window.jumpToQuestion = jumpToQuestion;
 window.nextQuestion = nextQuestion;
 window.prevQuestion = prevQuestion;
-window.submitAllSubjects = submitAllSubjects;
+window.submitAssessment = submitAssessment;

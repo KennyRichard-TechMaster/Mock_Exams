@@ -3,87 +3,82 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Mock Exam CBT</title>
+    <title>VIEK Technologies AI Cybersecurity Awareness Assessment</title>
     <link rel="stylesheet" href="/static/style.css" />
   </head>
   <body class="student-body">
-    <div class="student-page">
-      <div class="student-header-card student-hero-card">
+    <main class="student-page">
+      <section class="student-header-card student-hero-card">
         <div class="student-header-left">
-          <div class="brand-badge">Computer Based Test</div>
-          <h1>Mock Exam CBT Platform</h1>
+          <div class="brand-badge">VIEK Technologies</div>
+          <h1>AI Cybersecurity Awareness Assessment</h1>
           <p>
-            Save your name, select any available subject, answer questions, and
-            submit when you are done. Your result will appear immediately after
-            submission.
+            Complete this 15-question workplace assessment before or after your
+            cybersecurity awareness training. Your result will appear immediately
+            after submission.
           </p>
         </div>
 
         <div class="timer-box" id="timerBox">
-          <span>Exam Timer</span>
-          <h2 id="timer">60:00</h2>
-          <small>1 hour duration</small>
+          <span>Assessment Timer</span>
+          <h2 id="timer">20:00</h2>
+          <small id="timerDurationText">20 minute duration</small>
         </div>
-      </div>
+      </section>
 
-      <div class="name-save-card" id="nameSaveCard">
+      <section class="name-save-card" id="startCard">
         <div class="card-section-title">
-          <h2>Student Registration</h2>
-          <p>Enter your full name before you begin the examination.</p>
+          <h2>Employee Details</h2>
+          <p>Enter your name and company before starting the assessment.</p>
         </div>
 
-        <div class="name-save-grid">
+        <div class="name-save-grid employee-start-grid">
           <div class="student-input-group">
-            <label for="studentName">Student Full Name</label>
+            <label for="employeeName">Employee Full Name</label>
             <input
               type="text"
-              id="studentName"
+              id="employeeName"
+              autocomplete="name"
               placeholder="Enter your full name"
             />
           </div>
 
+          <div class="student-input-group">
+            <label for="companyName">Company Name</label>
+            <input
+              type="text"
+              id="companyName"
+              autocomplete="organization"
+              placeholder="Enter your company name"
+            />
+          </div>
+
           <button
-            id="saveNameBtn"
+            id="startAssessmentBtn"
             class="primary-btn name-save-btn"
-            onclick="saveStudentName()"
+            onclick="startAssessment()"
           >
-            Save Name
+            Start Assessment
           </button>
         </div>
-
-        <p class="helper-note">
-          If this name already exists, the system will ask whether this is a
-          retake for the same student.
-        </p>
-      </div>
+      </section>
 
       <div id="savedStudentBanner" class="saved-student-banner hidden">
-        <div>Candidate: <strong id="savedStudentNameText"></strong></div>
-        <div class="saved-student-status">Ready for exam</div>
+        <div>Employee: <strong id="savedEmployeeNameText"></strong></div>
+        <div>Company: <strong id="savedCompanyNameText"></strong></div>
+        <div class="saved-student-status">Assessment in progress</div>
       </div>
 
-      <div class="subjects-panel-card">
-        <div class="subjects-panel-top">
-          <h2>Available Subjects</h2>
-          <p>
-            Click any subject below to start. You can switch between subjects at
-            any time before final submission.
-          </p>
-        </div>
-
-        <div id="subjectRow" class="subject-buttons-row"></div>
-      </div>
-
-      <div id="examArea" class="exam-area hidden">
+      <section id="examArea" class="exam-area hidden">
         <div class="cbt-shell">
           <div class="cbt-main-panel">
             <div class="question-view-card question-view-pro">
               <div class="question-view-top">
                 <span class="question-count" id="questionCount">
-                  Question 1 of 1
+                  Question 1 of 15
                 </span>
-                <span class="subject-name-pill" id="subjectNamePill">
-                  Subject
+                <span class="subject-name-pill" id="categoryPill">
+                  Cybersecurity Awareness
                 </span>
               </div>
 
@@ -92,17 +87,17 @@
               <div id="optionsContainer" class="options-list"></div>
 
               <div class="question-navigation">
-                <button class="secondary-btn" onclick="prevQuestion()">
+                <button class="secondary-btn" id="prevBtn" onclick="prevQuestion()">
                   Previous
                 </button>
-                <button class="primary-btn" onclick="nextQuestion()">
+                <button class="primary-btn" id="nextBtn" onclick="nextQuestion()">
                   Next
                 </button>
               </div>
             </div>
           </div>
 
-          <div class="cbt-side-panel">
+          <aside class="cbt-side-panel">
             <div class="side-card">
               <h3>Question Palette</h3>
               <div id="questionPalette" class="question-palette"></div>
@@ -123,21 +118,28 @@
             </div>
 
             <div class="side-card">
-              <h3>Subject Progress</h3>
-              <div id="subjectProgressList" class="subject-progress-list"></div>
+              <h3>Progress</h3>
+              <div class="subject-progress-item">
+                <div class="subject-progress-name" id="progressText">
+                  0 / 15 answered
+                </div>
+                <div class="progress-track">
+                  <div class="progress-fill" id="progressFill"></div>
+                </div>
+              </div>
             </div>
-          </div>
+          </aside>
         </div>
-      </div>
+      </section>
 
       <button
         id="submitBtn"
         class="submit-fixed-btn hidden"
-        onclick="submitAllSubjects()"
+        onclick="submitAssessment()"
       >
-        Submit All Subjects
+        Submit Assessment
       </button>
-    </div>
+    </main>
 
     <script src="/static/script.js"></script>
   </body>

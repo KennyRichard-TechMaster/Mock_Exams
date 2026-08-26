@@ -10,8 +10,8 @@
   --muted: #667085;
   --line: #d9e2ef;
   --line-strong: #c8d4e4;
-  --primary: #1d4ed8;
-  --primary-dark: #143caa;
+  --primary: #0f766e;
+  --primary-dark: #115e59;
   --primary-soft: #edf4ff;
   --success: #059669;
   --success-soft: #ecfdf3;
@@ -37,12 +37,12 @@ body {
   background:
     radial-gradient(
       circle at top left,
-      rgba(29, 78, 216, 0.08),
+      rgba(15, 118, 110, 0.08),
       transparent 28%
     ),
     radial-gradient(
       circle at top right,
-      rgba(5, 150, 105, 0.08),
+      rgba(37, 99, 235, 0.07),
       transparent 24%
     ),
     linear-gradient(180deg, #f8fbff 0%, #f3f6fb 100%);
@@ -159,9 +159,9 @@ body {
 }
 
 .primary-btn {
-  background: linear-gradient(135deg, var(--primary), #2563eb);
+  background: linear-gradient(135deg, var(--primary), #0d9488);
   color: #ffffff;
-  box-shadow: 0 10px 18px rgba(37, 99, 235, 0.18);
+  box-shadow: 0 10px 18px rgba(15, 118, 110, 0.18);
 }
 
 .primary-btn:hover {
@@ -483,6 +483,37 @@ body {
   gap: 10px;
 }
 
+.admin-question-text {
+  margin: 0 0 14px;
+  color: #111827;
+  font-size: 16px;
+  line-height: 1.65;
+  font-weight: 700;
+}
+
+.admin-options-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  color: #334155;
+  line-height: 1.5;
+}
+
+.admin-options-list div {
+  border: 1px solid #e5ebf3;
+  border-radius: 8px;
+  padding: 10px 12px;
+  background: #f8fafc;
+}
+
+.admin-card-actions {
+  margin-top: 16px;
+}
+
+.admin-history-table {
+  min-width: 1050px;
+}
+
 /* STUDENT */
 .student-header-card {
   display: flex;
@@ -517,7 +548,7 @@ body {
   margin: 0;
   color: var(--danger);
   font-size: 36px;
-  letter-spacing: 1px;
+  letter-spacing: 0;
 }
 
 .timer-box small {
@@ -549,6 +580,10 @@ body {
   grid-template-columns: 1fr auto;
   gap: 12px;
   align-items: end;
+}
+
+.employee-start-grid {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
 }
 
 .name-save-btn {
@@ -859,6 +894,22 @@ body {
   font-size: 13px;
 }
 
+.progress-track {
+  height: 10px;
+  border-radius: 999px;
+  background: #e5edf6;
+  overflow: hidden;
+  margin-top: 10px;
+}
+
+.progress-fill {
+  width: 0%;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(135deg, var(--primary), #2563eb);
+  transition: width 0.2s ease;
+}
+
 .mini-empty-state,
 .mini-meta,
 .table-note {
@@ -1029,6 +1080,122 @@ body {
   text-align: left;
 }
 
+.result-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  margin: 24px 0;
+  text-align: left;
+}
+
+.result-metrics > div {
+  border: 1px solid #e4ebf4;
+  border-radius: 8px;
+  padding: 16px;
+  background: #ffffff;
+}
+
+.result-metrics span {
+  display: block;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.result-metrics strong {
+  display: block;
+  font-size: 26px;
+  color: #111827;
+}
+
+.risk-low strong {
+  color: var(--success);
+}
+
+.risk-medium strong {
+  color: #b45309;
+}
+
+.risk-high strong {
+  color: var(--danger);
+}
+
+.weak-area-panel,
+.breakdown-panel {
+  margin-top: 22px;
+  text-align: left;
+}
+
+.weak-area-panel {
+  border: 1px solid #e4ebf4;
+  border-radius: 8px;
+  padding: 18px;
+  background: #f8fafc;
+}
+
+.weak-area-panel h2,
+.breakdown-panel h2 {
+  margin: 0 0 14px;
+  font-size: 22px;
+}
+
+.weak-area-panel ul {
+  margin: 0;
+  padding-left: 20px;
+  color: #334155;
+  line-height: 1.8;
+}
+
+.breakdown-panel {
+  display: grid;
+  gap: 12px;
+}
+
+.breakdown-item {
+  border: 1px solid #e4ebf4;
+  border-left-width: 5px;
+  border-radius: 8px;
+  padding: 16px;
+  background: #ffffff;
+}
+
+.breakdown-correct {
+  border-left-color: var(--success);
+}
+
+.breakdown-incorrect {
+  border-left-color: var(--danger);
+}
+
+.breakdown-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.breakdown-top span {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.breakdown-item p {
+  margin: 10px 0 0;
+  line-height: 1.6;
+}
+
+.answer-line {
+  color: #334155;
+}
+
+.missed-answer {
+  color: #991b1b;
+  font-weight: 700;
+}
+
 /* RESPONSIVE */
 @media (max-width: 1050px) {
   .cbt-shell {
@@ -1047,9 +1214,15 @@ body {
     grid-template-columns: 1fr;
   }
 
+  .admin-options-list {
+    grid-template-columns: 1fr;
+  }
+
   .subject-name-edit-wrap,
   .question-admin-bottom,
-  .name-save-grid {
+  .name-save-grid,
+  .employee-start-grid,
+  .result-metrics {
     display: grid;
     grid-template-columns: 1fr;
   }
